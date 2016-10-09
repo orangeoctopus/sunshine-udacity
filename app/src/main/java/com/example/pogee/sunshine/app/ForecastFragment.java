@@ -16,20 +16,33 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.json.JSONArray;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.SimpleTimeZone;
+import java.util.TimeZone;
 
 /**
  * A placeholder fragment containing a simple view.
  */
 public class ForecastFragment extends Fragment {
+
+    private ArrayAdapter<String> mForecastAdapter;
 
     public ForecastFragment() {
     }
@@ -54,7 +67,7 @@ public class ForecastFragment extends Fragment {
         List<String> weekForecast = new ArrayList<String>(
                 Arrays.asList(forecastArray));
 
-        ArrayAdapter<String> mForecastAdapter = new ArrayAdapter<String>(
+        mForecastAdapter = new ArrayAdapter<String>(
                 //context
                 getActivity(),
                 //ID of list item layout
@@ -105,12 +118,118 @@ public class ForecastFragment extends Fragment {
 
 
 
-    public class FetchWeatherTask extends AsyncTask <String, Void, Void> {
+    public class FetchWeatherTask extends AsyncTask <String, Void, String[]> {
 
         private final String LOG_TAG = FetchWeatherTask.class.getSimpleName();
 
+
+
+        /* The date/time conversion code is going to be moved outside the asynctask later,
+                * so for convenience we're breaking it out into its own method now.
+                */
+        private String getReadableDateString(Date time){
+            // Because the API returns a unix timestamp (measured in seconds),
+            // it must be converted to milliseconds in order to be converted to valid date.
+            SimpleDateFormat shortenedDateFormat = new SimpleDateFormat("EEE MMM dd");
+            return shortenedDateFormat.format(time);
+        }
+
+        /**
+         * Prepare the weather high/lows for presentation.
+         */
+        private String formatHighLows(double high, double low) {
+            // For presentation, assume the user doesn't care about tenths of a degree.
+            long roundedHigh = Math.round(high);
+            long roundedLow = Math.round(low);
+
+            String highLowStr = roundedHigh + "/" + roundedLow;
+            return highLowStr;
+        }
+
+        /**
+         * Take the String representing the complete forecast in JSON Format and
+         * pull out the data we need to construct the Strings needed for the wireframes.
+         *
+         * Fortunately parsing is easy:  constructor takes the JSON string and converts it
+         * into an Object hierarchy for us.
+         */
+        private String[] getWeatherDataFromJson(String forecastJsonStr, int numDays)
+                throws JSONException {
+
+            // These are the names of the JSON objects that need to be extracted.
+            final String OWM_LIST = "list";
+            final String OWM_WEATHER = "weather";
+            final String OWM_MAIN = "main";
+            final String OWM_TEMPERATURE = "temp";
+            final String OWM_DESCRIPTION = "main";
+
+            JSONObject forecastJson = new JSONObject(forecastJsonStr);
+            JSONArray weatherArray = forecastJson.getJSONArray(OWM_LIST);
+
+            // OWM returns daily forecasts based upon the local time of the city that is being
+            // asked for, which means that we need to know the GMT offset to translate this data
+            // properly.
+
+            // Since this data is also sent in-order and the first day is always the
+            // current day, we're going to take advantage of that to get a nice
+            // normalized UTC date for all of our weather.
+
+
+
+            String[] resultStrs = new String[numDays];
+            for(int i = 0; i < weatherArray.length(); i+=8) {
+                // For now, using the format "Day, description, hi/low"
+                String day;
+                String description;
+                String highAndLow;
+
+                // Get the JSON object representing the day - Each day has 8 forecasts (every 3 hours)
+                //take the one at 9am
+                JSONObject dayForecast = weatherArray.getJSONObject(i+3);
+
+
+
+                //create a Gregorian Calendar, which is in current date
+                GregorianCalendar gc = new GregorianCalendar();
+                //add i dates to current date of calendar
+                gc.add(GregorianCalendar.DATE, i/8);
+                //get that date, format it, and "save" it on variable day
+                // set to another time zone
+                gc.setTimeZone(TimeZone.getTimeZone("GMT+11"));
+                Date time = gc.getTime();
+                day = getReadableDateString(time);
+
+
+                // description is in a child array called "weather", which is 1 element long. (descr at noon)
+                JSONObject weatherObject = dayForecast.getJSONArray(OWM_WEATHER).getJSONObject(0);
+                description = weatherObject.getString(OWM_DESCRIPTION);
+
+                // Temperatures are in a child object called "main".  Try not to name variables
+                // "temp" when working with temperature.  It confuses everybody.
+                //take the temperatures for that day and display max anad min
+                JSONObject temperatureObject = new JSONObject();
+
+                ArrayList<Double> tempList = new ArrayList<Double>();
+                for(int j = 0; j < 8; j++) {
+                    temperatureObject = weatherArray.getJSONObject(j).getJSONObject(OWM_MAIN);
+                    tempList.add(temperatureObject.getDouble(OWM_TEMPERATURE)) ;
+                }
+                double high = Collections.max(tempList);
+                double low = Collections.min(tempList);
+
+                highAndLow = formatHighLows(high, low);
+                resultStrs[i/8] = day + " - " + description + " - " + highAndLow;
+            }
+
+            return resultStrs;
+
+        }
+
+
+
+
         @Override
-        protected Void doInBackground(String... params) {
+        protected String[] doInBackground(String... params) {
 
             // These two need to be declared outside the try/catch
             // so that they can be closed in the finally block.
@@ -122,7 +241,7 @@ public class ForecastFragment extends Fragment {
 
             String format = "json";
             String units = "metric";
-            int count = 7;
+            int count = 16;
 
             try {
                 // Construct the URL for the OpenWeatherMap query
@@ -176,7 +295,7 @@ public class ForecastFragment extends Fragment {
                     forecastJsonStr = null;
                 }
                 forecastJsonStr = buffer.toString();
-                Log.v(LOG_TAG, "Forecase JSON String: " + forecastJsonStr);
+
 
             } catch (IOException e) {
                 Log.e("PlaceholderFragment", "Error ", e);
@@ -195,7 +314,26 @@ public class ForecastFragment extends Fragment {
                     }
                 }
             }
+            try {
+                return getWeatherDataFromJson(forecastJsonStr,2);
+            } catch (JSONException e) {
+                Log.e(LOG_TAG, e.getMessage(), e);
+                e.printStackTrace();
+
+            }
+            // This will only happen if there was an error getting or parsing the forecast
             return null;
+        }
+
+        @Override
+        protected void onPostExecute(String[] result) {
+            super.onPostExecute(result);
+            if (result != null) {
+                mForecastAdapter.clear();
+                for (String dayForecastStr : result) {
+                    mForecastAdapter.add(dayForecastStr);
+                }// New data is back from the server.  Hooray!
+            }
         }
 
 
