@@ -13,8 +13,10 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -64,7 +66,7 @@ public class ForecastFragment extends Fragment {
         };
 
 
-        List<String> weekForecast = new ArrayList<String>(
+        final List<String> weekForecast = new ArrayList<String>(
                 Arrays.asList(forecastArray));
 
         mForecastAdapter = new ArrayAdapter<String>(
@@ -80,8 +82,16 @@ public class ForecastFragment extends Fragment {
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
 
         //get reference to list view and atache adapter to it
-        ListView mForecastListview = (ListView) rootView.findViewById(R.id.listview_forecast);
+        final ListView mForecastListview = (ListView) rootView.findViewById(R.id.listview_forecast);
         mForecastListview.setAdapter(mForecastAdapter);
+        mForecastListview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                String forecast = mForecastAdapter.getItem(position);
+                Toast toast = Toast.makeText(getActivity(),forecast,Toast.LENGTH_SHORT);
+                toast.show();
+            }
+        });
 
 
 
