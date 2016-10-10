@@ -1,5 +1,6 @@
 package com.example.pogee.sunshine.app;
 
+import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.annotation.InterpolatorRes;
@@ -88,8 +89,12 @@ public class ForecastFragment extends Fragment {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 String forecast = mForecastAdapter.getItem(position);
-                Toast toast = Toast.makeText(getActivity(),forecast,Toast.LENGTH_SHORT);
-                toast.show();
+                //Toast toast = Toast.makeText(getActivity(),forecast,Toast.LENGTH_SHORT);
+                //toast.show();
+                Intent detailIntent = new Intent(getActivity(),DetailActivity.class)
+                .putExtra(Intent.EXTRA_TEXT, forecast);
+                startActivity(detailIntent);
+
             }
         });
 
