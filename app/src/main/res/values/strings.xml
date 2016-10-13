@@ -1,8 +1,23 @@
 <resources>
     <string name="app_name">Sunshine</string>
-    <string name="action_settings">Settings</string>
+
 
     <!-- MEnu labels -->
     <string name="action_refresh" translatable="false"> Refresh</string>
-    <string name="title_activity_detail">DetailActivity</string>
+    <string name="title_activity_detail">Detail</string>
+    <string name="title_activity_settings">Settings</string>
+    <string name="action_settings">Settings</string>
+    <string name="action_map">Map Location</string>
+
+    <!-- titles -->
+    <string name="pref_location_title">Location</string>
+    <string name="pref_tempunit_title">Temperature Unit</string>
+    <!-- key name for storing location in shared references-->
+    <string name="pref_location_key" translatable="false">location</string>
+    <string name="pref_location_default" translatable="false">2147714</string>
+    <string name="pref_tempunit_key" translatable="false">tempunit</string>
+    <string name="pref_tempunit_default" translatable="false">metric</string>
+    <string name="pref_tempunit_imperial" translatable="false">imperial</string>
+
+
 </resources>

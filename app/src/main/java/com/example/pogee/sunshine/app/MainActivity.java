@@ -1,6 +1,10 @@
 package com.example.pogee.sunshine.app;
 
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
@@ -40,13 +44,37 @@ public class MainActivity extends AppCompatActivity {
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
+        switch(item.getItemId()) {
+            case R.id.action_settings:
+                startActivity(new Intent(this, SettingsActivity.class));
+                return true;
+            case R.id.action_map:
+                openPreferredLocationOnMap();
+            default:
+                return super.onOptionsItemSelected(item);
         }
 
-        return super.onOptionsItemSelected(item);
+    }
+
+    private void openPreferredLocationOnMap() {
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+        String location = sharedPref.getString(getString(R.string.pref_location_key), getString(R.string.pref_location_default));
+        //dogey converting postcode to city name
+        if(location.equals("1835848")) {
+            location = "Seoul";
+        } else if (location.equals("1819729")){
+            location = "Hong Kong";
+        }else {
+            location = "Sydney";
+        }
+        Uri geoLocation = Uri.parse("geo:0,0?:").buildUpon()
+                .appendQueryParameter("q", location)
+                .build();
+        Intent mapintent = new Intent(Intent.ACTION_VIEW);
+        mapintent.setData(geoLocation);
+        if(getIntent().resolveActivity(getPackageManager()) != null) {
+            startActivity(mapintent);
+        }
     }
 }

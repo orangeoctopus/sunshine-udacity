@@ -1,12 +1,17 @@
 package com.example.pogee.sunshine.app;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.preference.Preference;
+import android.preference.PreferenceManager;
 import android.support.annotation.InterpolatorRes;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
+import android.support.v4.content.SharedPreferencesCompat;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -46,6 +51,7 @@ import java.util.TimeZone;
 public class ForecastFragment extends Fragment {
 
     private ArrayAdapter<String> mForecastAdapter;
+    private Context mContext = this.getContext();
 
     public ForecastFragment() {
     }
@@ -54,21 +60,6 @@ public class ForecastFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
-         //dummy data for listview
-        String[] forecastArray = {
-                "Today - Sunny - 88/63",
-                "T0morrow - Cloudy - 72/63",
-                "wednes - Cloudy - 34",
-                "Thurs - Sunny - 34/43",
-                "Fris - kaboom - 343",
-                "satt - rainrin - 12/34",
-                "Sun - LALALAL - off",
-
-        };
-
-
-        final List<String> weekForecast = new ArrayList<String>(
-                Arrays.asList(forecastArray));
 
         mForecastAdapter = new ArrayAdapter<String>(
                 //context
@@ -77,8 +68,8 @@ public class ForecastFragment extends Fragment {
                 R.layout.list_item_forecast,
                 //id of textview
                 R.id.list_item_forecast_textview,
-                //list sof data
-                weekForecast);
+                //list sof data - starts empty
+                new ArrayList<String>());
 
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
 
@@ -120,9 +111,10 @@ public class ForecastFragment extends Fragment {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+
         switch(item.getItemId()) {
             case R.id.action_refresh:
-                new FetchWeatherTask().execute("2147714");
+                updateWeather();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -131,7 +123,17 @@ public class ForecastFragment extends Fragment {
 
     }
 
+    private void updateWeather() {
+        String locationpref = PreferenceManager.getDefaultSharedPreferences(getActivity())
+                .getString(getString(R.string.pref_location_key),getString(R.string.pref_location_default));
+        new FetchWeatherTask().execute(locationpref);
+    }
 
+    @Override
+    public void onStart() {
+        super.onStart();
+        updateWeather();
+    }
 
     public class FetchWeatherTask extends AsyncTask <String, Void, String[]> {
 
@@ -153,6 +155,21 @@ public class ForecastFragment extends Fragment {
          * Prepare the weather high/lows for presentation.
          */
         private String formatHighLows(double high, double low) {
+            //data is fetched in celsius by default.
+            //if user selectes farenheight, values are converted here
+            //we do this rather than fetching in farenheit so that the user can change this option whithout
+            //having to re-fetch the ata once we start storing the vlues in database
+            SharedPreferences sharedpref = PreferenceManager.getDefaultSharedPreferences(getActivity());
+            String unitType = sharedpref.getString(
+                    getString(R.string.pref_tempunit_key),
+                    getString(R.string.pref_tempunit_default));
+            if(unitType.equals(getString(R.string.pref_tempunit_imperial))) {
+                high = (high *1.8) +32;
+                low = (low *1.8) +32;
+            }else if (!unitType.equals(getString(R.string.pref_tempunit_default))) {
+                Log.d(LOG_TAG, "unit type not found: " + unitType);
+            }
+
             // For presentation, assume the user doesn't care about tenths of a degree.
             long roundedHigh = Math.round(high);
             long roundedLow = Math.round(low);
@@ -199,7 +216,7 @@ public class ForecastFragment extends Fragment {
                 String highAndLow;
 
                 // Get the JSON object representing the day - Each day has 8 forecasts (every 3 hours)
-                //take the one at 9am
+                //take the one at 9am for description
                 JSONObject dayForecast = weatherArray.getJSONObject(i+3);
 
 
@@ -225,12 +242,16 @@ public class ForecastFragment extends Fragment {
                 JSONObject temperatureObject = new JSONObject();
 
                 ArrayList<Double> tempList = new ArrayList<Double>();
-                for(int j = 0; j < 8; j++) {
-                    temperatureObject = weatherArray.getJSONObject(j).getJSONObject(OWM_MAIN);
+                for(int j = 0; j<8 && (i+j)<39; j++) {
+                    //every 8 objects in wether array = 1 day. i is the day*8 (start from 0). j will loop through each "day"
+                    temperatureObject = weatherArray.getJSONObject(i+j).getJSONObject(OWM_MAIN);
                     tempList.add(temperatureObject.getDouble(OWM_TEMPERATURE)) ;
+                    //Log.e("temps", "s" + temperatureObject.getDouble(OWM_TEMPERATURE) );
                 }
                 double high = Collections.max(tempList);
                 double low = Collections.min(tempList);
+
+                //Log.e("highlows", "H" +high + "low" + low );
 
                 highAndLow = formatHighLows(high, low);
                 resultStrs[i/8] = day + " - " + description + " - " + highAndLow;
@@ -256,7 +277,8 @@ public class ForecastFragment extends Fragment {
 
             String format = "json";
             String units = "metric";
-            int count = 16;
+            //number of entries returned - 8 entries for each day
+            int count = 39;//all entries
 
             try {
                 // Construct the URL for the OpenWeatherMap query
@@ -330,7 +352,7 @@ public class ForecastFragment extends Fragment {
                 }
             }
             try {
-                return getWeatherDataFromJson(forecastJsonStr,2);
+                return getWeatherDataFromJson(forecastJsonStr,5);
             } catch (JSONException e) {
                 Log.e(LOG_TAG, e.getMessage(), e);
                 e.printStackTrace();
