@@ -3,6 +3,7 @@ package com.example.pogee.sunshine.app;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.preference.Preference;
@@ -197,8 +198,9 @@ public class ForecastFragment extends Fragment {
 
             JSONObject forecastJson = new JSONObject(forecastJsonStr);
             JSONArray weatherArray = forecastJson.getJSONArray(OWM_LIST);
+            int cnt = forecastJson.getInt("cnt");
 
-            // OWM returns daily forecasts based upon the local time of the city that is being
+                    // OWM returns daily forecasts based upon the local time of the city that is being
             // asked for, which means that we need to know the GMT offset to translate this data
             // properly.
 
@@ -214,6 +216,7 @@ public class ForecastFragment extends Fragment {
                 String day;
                 String description;
                 String highAndLow;
+
 
                 // Get the JSON object representing the day - Each day has 8 forecasts (every 3 hours)
                 //take the one at 9am for description
@@ -242,7 +245,7 @@ public class ForecastFragment extends Fragment {
                 JSONObject temperatureObject = new JSONObject();
 
                 ArrayList<Double> tempList = new ArrayList<Double>();
-                for(int j = 0; j<8 && (i+j)<39; j++) {
+                for(int j = 0; j<8 && (i+j)<cnt; j++) {   //39 items so index 38
                     //every 8 objects in wether array = 1 day. i is the day*8 (start from 0). j will loop through each "day"
                     temperatureObject = weatherArray.getJSONObject(i+j).getJSONObject(OWM_MAIN);
                     tempList.add(temperatureObject.getDouble(OWM_TEMPERATURE)) ;
@@ -278,7 +281,7 @@ public class ForecastFragment extends Fragment {
             String format = "json";
             String units = "metric";
             //number of entries returned - 8 entries for each day
-            int count = 39;//all entries
+            //but starting from closes 3hr so cnt changes depending on what time of day
 
             try {
                 // Construct the URL for the OpenWeatherMap query
@@ -288,14 +291,12 @@ public class ForecastFragment extends Fragment {
                 final String POSTCODE_PARAM = "id";
                 final String FORMAT_PARAM = "mode";
                 final String UNITS_PARAM = "units";
-                final String COUNT_PARAM = "cnt";
                 final String KEY_PARAM = "appid";
 
                 Uri builtUri = Uri.parse(FORCAST_BASE_URI).buildUpon()
                         .appendQueryParameter(POSTCODE_PARAM,params[0])
                         .appendQueryParameter(FORMAT_PARAM, format)
                         .appendQueryParameter(UNITS_PARAM,units)
-                        .appendQueryParameter(COUNT_PARAM, Integer.toString(count))
                         .appendQueryParameter(KEY_PARAM,BuildConfig.OPEN_WEATHER_MAP_API_KEY)
                         .build();
 
@@ -303,6 +304,11 @@ public class ForecastFragment extends Fragment {
                 URL url = new URL(builtUri.toString());
 
                 Log.v(LOG_TAG, "Built URI" + builtUri.toString());
+                //check connectivity otherise offline return null
+                ConnectivityManager cm = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+                if(cm.getActiveNetworkInfo() == null ) {
+                    return null;
+                }
 
 
                 // Create the request to OpenWeatherMap, and open the connection
@@ -370,6 +376,9 @@ public class ForecastFragment extends Fragment {
                 for (String dayForecastStr : result) {
                     mForecastAdapter.add(dayForecastStr);
                 }// New data is back from the server.  Hooray!
+            } else {
+                mForecastAdapter.clear();
+                mForecastAdapter.add("Cannot get data, iMaybe no internet connection");
             }
         }
 
