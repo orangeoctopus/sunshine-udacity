@@ -211,7 +211,7 @@ public class ForecastFragment extends Fragment {
 
 
             String[] resultStrs = new String[numDays];
-            for(int i = 0; i < weatherArray.length(); i+=8) {
+            for(int i = 0; i < cnt-1; i+=8) {
                 // For now, using the format "Day, description, hi/low"
                 String day;
                 String description;
@@ -219,8 +219,14 @@ public class ForecastFragment extends Fragment {
 
 
                 // Get the JSON object representing the day - Each day has 8 forecasts (every 3 hours)
-                //take the one at 9am for description
-                JSONObject dayForecast = weatherArray.getJSONObject(i+3);
+                //take the one at 9am for description - but fo rfirst one take first one
+                JSONObject dayForecast;
+                if(i!=0){
+                    dayForecast = weatherArray.getJSONObject(i + 3);
+                } else {
+                    dayForecast = weatherArray.getJSONObject(i);
+                }
+
 
 
 
@@ -245,11 +251,14 @@ public class ForecastFragment extends Fragment {
                 JSONObject temperatureObject = new JSONObject();
 
                 ArrayList<Double> tempList = new ArrayList<Double>();
-                for(int j = 0; j<8 && (i+j)<cnt; j++) {   //39 items so index 38
+                for(int j = 0; j<8 && (i+j)<(cnt-1); j++) {
                     //every 8 objects in wether array = 1 day. i is the day*8 (start from 0). j will loop through each "day"
                     temperatureObject = weatherArray.getJSONObject(i+j).getJSONObject(OWM_MAIN);
                     tempList.add(temperatureObject.getDouble(OWM_TEMPERATURE)) ;
                     //Log.e("temps", "s" + temperatureObject.getDouble(OWM_TEMPERATURE) );
+                }
+                if(i==0){
+                    i = i- (40-cnt);
                 }
                 double high = Collections.max(tempList);
                 double low = Collections.min(tempList);
@@ -257,7 +266,7 @@ public class ForecastFragment extends Fragment {
                 //Log.e("highlows", "H" +high + "low" + low );
 
                 highAndLow = formatHighLows(high, low);
-                resultStrs[i/8] = day + " - " + description + " - " + highAndLow;
+                resultStrs[(i+(40-cnt))/8] = day + " - " + description + " - " + highAndLow;
             }
 
             return resultStrs;
