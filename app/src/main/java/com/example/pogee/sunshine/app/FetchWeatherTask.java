@@ -57,9 +57,10 @@ public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
     private ArrayAdapter<String> mForecastAdapter;
     private final Context mContext;
 
-    public FetchWeatherTask(Context context, ArrayAdapter<String> forecastAdapter) {
+    public FetchWeatherTask(Context context) {
+        //removed from constructor parameter: , ArrayAdapter<String> forecastAdapter
         mContext = context;
-        mForecastAdapter = forecastAdapter;
+        //removed: mForecastAdapter = forecastAdapter;
     }
 
     private boolean DEBUG = true;
@@ -67,43 +68,45 @@ public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
     /* The date/time conversion code is going to be moved outside the asynctask later,
      * so for convenience we're breaking it out into its own method now.
      */
-    private String getReadableDateString(long time){
-        // Because the API returns a unix timestamp (measured in seconds),
-        // it must be converted to milliseconds in order to be converted to valid date.
-        Date date = new Date(time);
-        SimpleDateFormat format = new SimpleDateFormat("E, MMM d");
-        return format.format(date).toString();
-    }
 
-    /**
-     * Prepare the weather high/lows for presentation.
-     */
-    private String formatHighLows(double high, double low) {
-        // Data is fetched in Celsius by default.
-        // If user prefers to see in Fahrenheit, convert the values here.
-        // We do this rather than fetching in Fahrenheit so that the user can
-        // change this option without us having to re-fetch the data once
-        // we start storing the values in a database.
-        SharedPreferences sharedPrefs =
-                PreferenceManager.getDefaultSharedPreferences(mContext);
-        String unitType = sharedPrefs.getString(
-                mContext.getString(R.string.pref_tempunit_key),
-                mContext.getString(R.string.pref_tempunit_default));
-
-        if(unitType.equals(mContext.getString(R.string.pref_tempunit_imperial))) {
-            high = (high *1.8) +32;
-            low = (low *1.8) +32;
-        }else if (!unitType.equals(mContext.getString(R.string.pref_tempunit_default))) {
-            Log.d(LOG_TAG, "unit type not found: " + unitType);
-        }
-
-        // For presentation, assume the user doesn't care about tenths of a degree.
-        long roundedHigh = Math.round(high);
-        long roundedLow = Math.round(low);
-
-        String highLowStr = roundedHigh + "/" + roundedLow;
-        return highLowStr;
-    }
+    //remove: getReadableDateString, formatHighLows, convertContentValuesToUXFormat.
+//    private String getReadableDateString(long time){
+//        // Because the API returns a unix timestamp (measured in seconds),
+//        // it must be converted to milliseconds in order to be converted to valid date.
+//        Date date = new Date(time);
+//        SimpleDateFormat format = new SimpleDateFormat("E, MMM d");
+//        return format.format(date).toString();
+//    }
+//
+//    /**
+//     * Prepare the weather high/lows for presentation.
+//     */
+//    private String formatHighLows(double high, double low) {
+//        // Data is fetched in Celsius by default.
+//        // If user prefers to see in Fahrenheit, convert the values here.
+//        // We do this rather than fetching in Fahrenheit so that the user can
+//        // change this option without us having to re-fetch the data once
+//        // we start storing the values in a database.
+//        SharedPreferences sharedPrefs =
+//                PreferenceManager.getDefaultSharedPreferences(mContext);
+//        String unitType = sharedPrefs.getString(
+//                mContext.getString(R.string.pref_tempunit_key),
+//                mContext.getString(R.string.pref_tempunit_default));
+//
+//        if(unitType.equals(mContext.getString(R.string.pref_tempunit_imperial))) {
+//            high = (high *1.8) +32;
+//            low = (low *1.8) +32;
+//        }else if (!unitType.equals(mContext.getString(R.string.pref_tempunit_default))) {
+//            Log.d(LOG_TAG, "unit type not found: " + unitType);
+//        }
+//
+//        // For presentation, assume the user doesn't care about tenths of a degree.
+//        long roundedHigh = Math.round(high);
+//        long roundedLow = Math.round(low);
+//
+//        String highLowStr = roundedHigh + "/" + roundedLow;
+//        return highLowStr;
+//    }
 
     /**
      * Helper method to handle insertion of a new location in the weather database.
@@ -161,29 +164,29 @@ public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
         the UX expects so that we can continue to test the application even once we begin using
         the database.
      */
-    String[] convertContentValuesToUXFormat(Vector<ContentValues> cvv) {
-        // return strings to keep UI functional for now
-        String[] resultStrs = new String[cvv.size()];
-        for ( int i = 0; i < cvv.size(); i++ ) {
-            ContentValues weatherValues = cvv.elementAt(i);
-            String highAndLow = formatHighLows(
-                    weatherValues.getAsDouble(WeatherEntry.COLUMN_MAX_TEMP),
-                    weatherValues.getAsDouble(WeatherEntry.COLUMN_MIN_TEMP));
-            resultStrs[i] = getReadableDateString(
-                    weatherValues.getAsLong(WeatherEntry.COLUMN_DATE)) +
-                    " - " + weatherValues.getAsString(WeatherEntry.COLUMN_SHORT_DESC) +
-                    " - " + highAndLow;
-        }
-        return resultStrs;
-    }
+//    String[] convertContentValuesToUXFormat(Vector<ContentValues> cvv) {
+//        // return strings to keep UI functional for now
+//        String[] resultStrs = new String[cvv.size()];
+//        for ( int i = 0; i < cvv.size(); i++ ) {
+//            ContentValues weatherValues = cvv.elementAt(i);
+//            String highAndLow = formatHighLows(
+//                    weatherValues.getAsDouble(WeatherEntry.COLUMN_MAX_TEMP),
+//                    weatherValues.getAsDouble(WeatherEntry.COLUMN_MIN_TEMP));
+//            resultStrs[i] = getReadableDateString(
+//                    weatherValues.getAsLong(WeatherEntry.COLUMN_DATE)) +
+//                    " - " + weatherValues.getAsString(WeatherEntry.COLUMN_SHORT_DESC) +
+//                    " - " + highAndLow;
+//        }
+//        return resultStrs;
+//    }
 
-    private String getDayFromUnix(Long dateUnix) {
-        Date date = new Date(dateUnix*1000L); // *1000 is to convert seconds to milliseconds
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd"); // the format of your date
-        sdf.setTimeZone(TimeZone.getTimeZone("GMT+11")); // give a timezone reference for formating (see comment at the bottom
-
-        return sdf.format(date);
-    }
+//    private String getDayFromUnix(Long dateUnix) {
+//        Date date = new Date(dateUnix*1000L); // *1000 is to convert seconds to milliseconds
+//        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd"); // the format of your date
+//        sdf.setTimeZone(TimeZone.getTimeZone("GMT+11")); // give a timezone reference for formating (see comment at the bottom
+//
+//        return sdf.format(date);
+//    }
 
     /**
      * Take the String representing the complete forecast in JSON Format and
