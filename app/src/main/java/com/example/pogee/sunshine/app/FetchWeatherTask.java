@@ -15,9 +15,12 @@
  */
 package com.example.pogee.sunshine.app;
 
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.database.DatabaseUtils;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
@@ -25,6 +28,7 @@ import android.text.format.Time;
 import android.util.Log;
 import android.widget.ArrayAdapter;
 
+import com.example.pogee.sunshine.app.data.WeatherContract;
 import com.example.pogee.sunshine.app.data.WeatherContract.WeatherEntry;
 
 import org.json.JSONArray;
@@ -37,8 +41,13 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.TimeZone;
 import java.util.Vector;
 
 public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
@@ -81,11 +90,11 @@ public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
                 mContext.getString(R.string.pref_tempunit_key),
                 mContext.getString(R.string.pref_tempunit_default));
 
-        if (unitType.equals(mContext.getString(R.string.pref_tempunit_imperial))) {
-            high = (high * 1.8) + 32;
-            low = (low * 1.8) + 32;
-        } else if (!unitType.equals(mContext.getString(R.string.pref_location_default))) {
-            Log.d(LOG_TAG, "Unit type not found: " + unitType);
+        if(unitType.equals(mContext.getString(R.string.pref_tempunit_imperial))) {
+            high = (high *1.8) +32;
+            low = (low *1.8) +32;
+        }else if (!unitType.equals(mContext.getString(R.string.pref_tempunit_default))) {
+            Log.d(LOG_TAG, "unit type not found: " + unitType);
         }
 
         // For presentation, assume the user doesn't care about tenths of a degree.
@@ -105,11 +114,46 @@ public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
      * @param lon the longitude of the city
      * @return the row ID of the added location.
      */
-    long addLocation(String locationSetting, String cityName, double lat, double lon) {
+    public long addLocation(String locationSetting, String cityName, double lat, double lon) {
         // Students: First, check if the location with this city name exists in the db
         // If it exists, return the current ID
         // Otherwise, insert it using the content resolver and the base URI
-        return -1;
+        long locationId;
+        // First, check if the location with this city name exists in the db
+        Cursor locationCursor = mContext.getContentResolver().query(
+                              WeatherContract.LocationEntry.CONTENT_URI,
+                              new String[]{WeatherContract.LocationEntry._ID},
+                              WeatherContract.LocationEntry.COLUMN_LOCATION_SETTING + " = ?",
+                              new String[]{locationSetting},
+                              null);
+
+        if (locationCursor.moveToFirst()) {
+                      int locationIdIndex = locationCursor.getColumnIndex(WeatherContract.LocationEntry._ID);
+                       locationId = locationCursor.getLong(locationIdIndex);
+                    } else {
+                        // Now that the content provider is set up, inserting rows of data is pretty simple.
+                     // First create a ContentValues object to hold the data you want to insert.
+                           ContentValues locationValues = new ContentValues();
+                          // Then add the data, along with the corresponding name of the data type,
+                         // so the content provider knows what kind of value is being inserted.
+                        locationValues.put(WeatherContract.LocationEntry.COLUMN_CITY_NAME, cityName);
+                       locationValues.put(WeatherContract.LocationEntry.COLUMN_LOCATION_SETTING, locationSetting);
+                       locationValues.put(WeatherContract.LocationEntry.COLUMN_COORD_LAT, lat);
+                       locationValues.put(WeatherContract.LocationEntry.COLUMN_COORD_LONG, lon);
+
+                                // Finally, insert location data into the database.
+                                     Uri insertedUri = mContext.getContentResolver().insert(
+                                     WeatherContract.LocationEntry.CONTENT_URI,
+                                     locationValues
+                                      );
+
+                               // The resulting URI contains the ID for the row.  Extract the locationId from the Uri.
+                               locationId = ContentUris.parseId(insertedUri);
+                 }
+
+                        locationCursor.close();
+               // Wait, that worked?  Yes!
+                        return locationId;
     }
 
     /*
@@ -131,6 +175,14 @@ public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
                     " - " + highAndLow;
         }
         return resultStrs;
+    }
+
+    private String getDayFromUnix(Long dateUnix) {
+        Date date = new Date(dateUnix*1000L); // *1000 is to convert seconds to milliseconds
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd"); // the format of your date
+        sdf.setTimeZone(TimeZone.getTimeZone("GMT+11")); // give a timezone reference for formating (see comment at the bottom
+
+        return sdf.format(date);
     }
 
     /**
@@ -166,8 +218,10 @@ public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
         final String OWM_HUMIDITY = "humidity";
         final String OWM_WINDSPEED = "speed";
         final String OWM_WIND_DIRECTION = "deg";
+        final String OWM_WIND = "wind";
 
         // All temperatures are children of the "temp" object.
+        final String OWM_MAIN = "main";
         final String OWM_TEMPERATURE = "temp";
         final String OWM_MAX = "max";
         final String OWM_MIN = "min";
@@ -175,6 +229,8 @@ public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
         final String OWM_WEATHER = "weather";
         final String OWM_DESCRIPTION = "main";
         final String OWM_WEATHER_ID = "id";
+
+        final String OWM_TIME = "dt";
 
         try {
             JSONObject forecastJson = new JSONObject(forecastJsonStr);
@@ -200,6 +256,7 @@ public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
             // current day, we're going to take advantage of that to get a nice
             // normalized UTC date for all of our weather.
 
+            /*  start of old code where the api was more simple in giving weather for each day...
             Time dayTime = new Time();
             dayTime.setToNow();
 
@@ -246,11 +303,120 @@ public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
                 JSONObject temperatureObject = dayForecast.getJSONObject(OWM_TEMPERATURE);
                 high = temperatureObject.getDouble(OWM_MAX);
                 low = temperatureObject.getDouble(OWM_MIN);
+                */
+
+            int cnt = forecastJson.getInt("cnt");
+            int numDays = 5;
+
+            String[] resultStrs = new String[numDays];
+            for(int i = 0; i < cnt; i+=8) {
+
+                // These are the values that will be collected.
+                long day;
+                double pressure;
+                int humidity;
+                double windSpeed;
+                double windDirection;
+
+                double high;
+                double low;
+
+                int weatherId;
+                // For now, using the format "Day, description, hi/low"
+                //String dayString;
+                String description;
+                String highAndLow;
+
+
+                // Get the JSON object representing the day - Each day has 8 forecasts (every 3 hours)
+                //take the one at 9am for description - but fo rfirst one take first one
+                JSONObject dayForecast;
+                if(i!=0){
+                    dayForecast = weatherArray.getJSONObject(i + 3);
+                } else {
+                    dayForecast = weatherArray.getJSONObject(i);
+                }
+
+
+
+
+
+//                //create a Gregorian Calendar, which is in current date
+//                GregorianCalendar gc = new GregorianCalendar();
+//                //add i dates to current date of calendar
+//                gc.add(GregorianCalendar.DATE, i/8);
+//                //get that date, format it, and "save" it on variable day
+//                // set to another time zone
+//                gc.setTimeZone(TimeZone.getTimeZone("GMT+11"));
+//                day = gc.getTime().getTime();
+//                dayString = DateFormat.getDateInstance(DateFormat.SHORT).format(gc.getTime());;
+//
+                  //create a Gregorian Calendar, which is in current date
+                GregorianCalendar gc = new GregorianCalendar();
+//                //add i dates to current date of calendar
+//                //get that date, format it, and "save" it on variable day
+//                // set to another time zone
+
+                Date forecastTime = new Date(dayForecast.getLong(OWM_TIME)*1000);
+                gc.setTimeZone(TimeZone.getTimeZone("GMT+10"));
+                gc.setTime(forecastTime);
+                gc.add(GregorianCalendar.HOUR, 10);
+
+
+                day = gc.getTime().getTime();
+//                dayString = DateFormat.getDateInstance(DateFormat.SHORT).format(gc.getTime());;
+
+//                day = dayForecast.getLong(OWM_TIME);
+//                day = getDayFromUnix(dayForecast.getLong(OWM_TIME));
+//                Log.e(LOG_TAG,day);
+
+
+
+                // description is in a child array called "weather", which is 1 element long. (descr at noon)
+                JSONObject weatherObject = dayForecast.getJSONArray(OWM_WEATHER).getJSONObject(0);
+                description = weatherObject.getString(OWM_DESCRIPTION);
+                weatherId = weatherObject.getInt(OWM_WEATHER_ID);
+
+
+                // Temperatures are in a child object called "main".  Try not to name variables
+                // "temp" when working with temperature.  It confuses everybody.
+                //take the temperatures for that day and display max anad min
+                JSONObject temperatureObject;
+                JSONObject windObject;
+
+                ArrayList<Double> tempList = new ArrayList<Double>();
+                double pressureSum = 0;
+                double speedSum = 0;
+                int humiditySum = 0;
+                double directionSum = 0;
+                for(int j = 0; j<8 && (i+j)<(cnt); j++) {
+                    //every 8 objects in weather array = 1 day. i is the day*8 (start from 0). j will loop through each "day"
+                    temperatureObject = weatherArray.getJSONObject(i+j).getJSONObject(OWM_MAIN);
+                    tempList.add(temperatureObject.getDouble(OWM_TEMPERATURE)) ;
+                    pressureSum += temperatureObject.getDouble(OWM_PRESSURE);
+                    humiditySum += temperatureObject.getInt(OWM_HUMIDITY);
+                    windObject = weatherArray.getJSONObject(i+j).getJSONObject(OWM_WIND);
+                    speedSum += windObject.getDouble(OWM_WINDSPEED);
+                    directionSum += windObject.getDouble(OWM_WIND_DIRECTION);
+                }
+                if(i==0){
+                    i = i- (40-cnt);
+                }
+                high = Collections.max(tempList);
+                low = Collections.min(tempList);
+                windSpeed = speedSum/cnt;
+                pressure = pressureSum/cnt;
+                windDirection = directionSum/cnt;
+                humidity = humiditySum/cnt;
+                //Log.e("highlows", "H" +high + "low" + low );
+
+                highAndLow = formatHighLows(high, low);
+                resultStrs[(i+(40-cnt))/8] = day + " - " + description + " - " + highAndLow;
 
                 ContentValues weatherValues = new ContentValues();
 
                 weatherValues.put(WeatherEntry.COLUMN_LOC_KEY, locationId);
-                weatherValues.put(WeatherEntry.COLUMN_DATE, dateTime);
+                weatherValues.put(WeatherEntry.COLUMN_DATE, day);
                 weatherValues.put(WeatherEntry.COLUMN_HUMIDITY, humidity);
                 weatherValues.put(WeatherEntry.COLUMN_PRESSURE, pressure);
                 weatherValues.put(WeatherEntry.COLUMN_WIND_SPEED, windSpeed);
@@ -266,36 +432,43 @@ public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
             // add to database
             if ( cVVector.size() > 0 ) {
                 // Student: call bulkInsert to add the weatherEntries to the database here
+                ContentValues[] cvArray = new ContentValues[cVVector.size()];
+                              cVVector.toArray(cvArray);  //convert vector to array
+                              mContext.getContentResolver().bulkInsert(WeatherEntry.CONTENT_URI, cvArray);
             }
 
+
+
             // Sort order:  Ascending, by date.
+            // but the date is in UTC which is behind my Australian time
             String sortOrder = WeatherEntry.COLUMN_DATE + " ASC";
             Uri weatherForLocationUri = WeatherEntry.buildWeatherLocationWithStartDate(
                     locationSetting, System.currentTimeMillis());
 
             // Students: Uncomment the next lines to display what what you stored in the bulkInsert
 
-//            Cursor cur = mContext.getContentResolver().query(weatherForLocationUri,
-//                    null, null, null, sortOrder);
-//
-//            cVVector = new Vector<ContentValues>(cur.getCount());
-//            if ( cur.moveToFirst() ) {
-//                do {
-//                    ContentValues cv = new ContentValues();
-//                    DatabaseUtils.cursorRowToContentValues(cur, cv);
-//                    cVVector.add(cv);
-//                } while (cur.moveToNext());
-//            }
+            Cursor cur = mContext.getContentResolver().query(weatherForLocationUri,
+                    null, null, null, sortOrder);
+
+            cVVector = new Vector<ContentValues>(cur.getCount());
+            if ( cur.moveToFirst() ) {
+                do {
+                    ContentValues cv = new ContentValues();
+                    DatabaseUtils.cursorRowToContentValues(cur, cv);
+                    cVVector.add(cv);
+                } while (cur.moveToNext());
+            }
 
             Log.d(LOG_TAG, "FetchWeatherTask Complete. " + cVVector.size() + " Inserted");
 
-            String[] resultStrs = convertContentValuesToUXFormat(cVVector);
+            resultStrs = convertContentValuesToUXFormat(cVVector);
             return resultStrs;
 
         } catch (JSONException e) {
             Log.e(LOG_TAG, e.getMessage(), e);
             e.printStackTrace();
         }
+
         return null;
     }
 
@@ -318,25 +491,26 @@ public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
 
         String format = "json";
         String units = "metric";
-        int numDays = 14;
+        //number of entries returned - 8 entries for each day
+        //but starting from closes 3hr so cnt changes depending on what time of day
 
         try {
             // Construct the URL for the OpenWeatherMap query
-            // Possible parameters are avaiable at OWM's forecast API page, at
+            // Possible parameters are available at OWM's forecast API page, at
             // http://openweathermap.org/API#forecast
-            final String FORECAST_BASE_URL =
-                    "http://api.openweathermap.org/data/2.5/forecast/daily?";
-            final String QUERY_PARAM = "q";
+            final String FORCAST_BASE_URI = "http://api.openweathermap.org/data/2.5/forecast?";
+            final String POSTCODE_PARAM = "id";
             final String FORMAT_PARAM = "mode";
             final String UNITS_PARAM = "units";
-            final String DAYS_PARAM = "cnt";
+            final String KEY_PARAM = "appid";
 
-            Uri builtUri = Uri.parse(FORECAST_BASE_URL).buildUpon()
-                    .appendQueryParameter(QUERY_PARAM, params[0])
+            Uri builtUri = Uri.parse(FORCAST_BASE_URI).buildUpon()
+                    .appendQueryParameter(POSTCODE_PARAM,params[0])
                     .appendQueryParameter(FORMAT_PARAM, format)
-                    .appendQueryParameter(UNITS_PARAM, units)
-                    .appendQueryParameter(DAYS_PARAM, Integer.toString(numDays))
+                    .appendQueryParameter(UNITS_PARAM,units)
+                    .appendQueryParameter(KEY_PARAM,BuildConfig.OPEN_WEATHER_MAP_API_KEY)
                     .build();
+
 
             URL url = new URL(builtUri.toString());
 
