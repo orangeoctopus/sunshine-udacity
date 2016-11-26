@@ -15,12 +15,31 @@ import android.view.MenuItem;
 
 public class MainActivity extends AppCompatActivity {
 
+    String mLocation;
+    private static final String FORECASTFRAGMENT_TAG = "FFTAG";
+
+    @Override
+    protected void onPostResume() {
+        super.onPostResume();
+        String location = Utility.getPreferredLocation( this );
+              // update the location in our second pane using the fragment manager
+                if (location != null && !location.equals(mLocation)) {
+                     ForecastFragment ff = (ForecastFragment)getSupportFragmentManager().findFragmentByTag(FORECASTFRAGMENT_TAG);
+                  if ( null != ff ) {
+                         ff.onLocationChanged();
+                       }
+                mLocation = location;
+                }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
+        mLocation = Utility.getPreferredLocation(this);
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -30,6 +49,12 @@ public class MainActivity extends AppCompatActivity {
                         .setAction("Action", null).show();
             }
         });
+
+        if (savedInstanceState == null) {
+            getSupportFragmentManager().beginTransaction()
+                    .add(R.id.fragment, new ForecastFragment(), FORECASTFRAGMENT_TAG)
+                    .commit();
+        }
     }
 
     @Override

@@ -292,13 +292,20 @@ public class FetchWeatherTask extends AsyncTask<String, Void, Void> {
 
                 ArrayList<Double> tempList = new ArrayList<Double>();
                 double pressureSum = 0;
+
                 double speedSum = 0;
                 int humiditySum = 0;
                 double directionSum = 0;
-                for(int j = 0; j<8 && (i+j)<(cnt); j++) {
+                int numtocnt = 8;
+                        if(i==0) { numtocnt = 8-(40-cnt);}
+
+                for(int j = 0; j<numtocnt && (i+j)<(cnt); j++) {
                     //every 8 objects in weather array = 1 day. i is the day*8 (start from 0). j will loop through each "day"
                     temperatureObject = weatherArray.getJSONObject(i+j).getJSONObject(OWM_MAIN);
                     tempList.add(temperatureObject.getDouble(OWM_TEMPERATURE)) ;
+                    Log.e("testata", "Day: " +DateFormat.getDateInstance(DateFormat.SHORT).format(gc.getTime()));
+                    Log.e("testata", "Temp: " +Double.toHexString(temperatureObject.getDouble(OWM_TEMPERATURE)));
+                    Log.e("testata", "i is: "+ i + "j is" + j);
                     pressureSum += temperatureObject.getDouble(OWM_PRESSURE);
                     humiditySum += temperatureObject.getInt(OWM_HUMIDITY);
                     windObject = weatherArray.getJSONObject(i+j).getJSONObject(OWM_WIND);
@@ -333,6 +340,7 @@ public class FetchWeatherTask extends AsyncTask<String, Void, Void> {
                 weatherValues.put(WeatherEntry.COLUMN_WEATHER_ID, weatherId);
 
                 cVVector.add(weatherValues);
+
             }
 
             int inserted = 0;
