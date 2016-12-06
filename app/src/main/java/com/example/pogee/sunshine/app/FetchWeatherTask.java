@@ -297,7 +297,13 @@ public class FetchWeatherTask extends AsyncTask<String, Void, Void> {
                 int humiditySum = 0;
                 double directionSum = 0;
                 int numtocnt = 8;
-                        if(i==0) { numtocnt = 8-(40-cnt);}
+                        if(i==0) {
+                            numtocnt = 8-(40-cnt);
+                            if(numtocnt<0) {
+                                //becuse for some reason theres only like 27 entries in api call
+                                numtocnt +=8;
+                            }
+                        }
 
                 for(int j = 0; j<numtocnt && (i+j)<(cnt); j++) {
                     //every 8 objects in weather array = 1 day. i is the day*8 (start from 0). j will loop through each "day"
@@ -314,9 +320,19 @@ public class FetchWeatherTask extends AsyncTask<String, Void, Void> {
                 }
                 if(i==0){
                     i = i- (40-cnt);
+                    if(i<0) {
+                        //becuse for some reason theres only like 27 entries in api call
+                        i +=8;
+                    }
                 }
-                high = Collections.max(tempList);
-                low = Collections.min(tempList);
+                if(tempList.size() != 0) {
+                    high = Collections.max(tempList);
+                    low = Collections.min(tempList);
+                }else{
+                    high = 50;
+                    low = 50;
+                }
+
                 windSpeed = speedSum/cnt;
                 pressure = pressureSum/cnt;
                 windDirection = directionSum/cnt;
