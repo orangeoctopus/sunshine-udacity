@@ -333,10 +333,10 @@ public class FetchWeatherTask extends AsyncTask<String, Void, Void> {
                     low = 50;
                 }
 
-                windSpeed = speedSum/cnt;
-                pressure = pressureSum/cnt;
-                windDirection = directionSum/cnt;
-                humidity = humiditySum/cnt;
+                windSpeed = speedSum/numtocnt;
+                pressure = pressureSum/numtocnt;
+                windDirection = directionSum/numtocnt;
+                humidity = humiditySum/numtocnt;
                 //Log.e("highlows", "H" +high + "low" + low );
 //                not needed anymore - now handled by forecast adapter
 //                highAndLow = formatHighLows(high, low);

@@ -129,7 +129,12 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
                 // Read weather condition ID from cursor
                 int weatherId = data.getInt(COL_WEATHER_CONDITION_ID);
                 // Use placeholder Image
-                mIconView.setImageResource(R.drawable.ic_placeholder);
+                //mIconView.setImageResource(R.drawable.ic_placeholder);
+                mIconView.setImageResource(Utility.getArtResourceForWeatherCondition(weatherId));
+
+                //read description
+                String description = data.getString(COL_WEATHER_DESC);
+                mDescriptionView.setText(description);
 
                 //read day and date from cursor
                 long dateInMillis = data.getLong(COL_WEATHER_DATE);
@@ -151,7 +156,7 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
 
 
                 //read wind from curosr
-                float windspeed = data.getFloat(COL_WEATHER_WIND_SPEED);
+                double windspeed = data.getDouble(COL_WEATHER_WIND_SPEED);
                 float winddirn = data.getFloat(COL_WEATHER_DEGREES);
                 mWindView.setText(Utility.getFormattedWind(getActivity(),windspeed,winddirn));
 

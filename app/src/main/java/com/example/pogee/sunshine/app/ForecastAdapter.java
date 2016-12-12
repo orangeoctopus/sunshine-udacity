@@ -7,6 +7,7 @@ package com.example.pogee.sunshine.app;
 import android.content.Context;
 import android.database.Cursor;
 import android.support.v4.widget.CursorAdapter;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -115,26 +116,42 @@ public class ForecastAdapter extends CursorAdapter {
 
         //TextView tv = (TextView)view;
         //tv.setText(convertCursorRowToUXFormat(cursor));
-        ViewHolder viewholder = (ViewHolder) view.getTag();  // read fro Tag to get back view holder objet (from new view)
+        ViewHolder viewHolder = (ViewHolder) view.getTag();  // read fro Tag to get back view holder objet (from new view)
 
         // Read weather icon ID from cursor
-        int weatherId = cursor.getInt(ForecastFragment.COL_WEATHER_ID);
+        int weatherId = cursor.getInt(ForecastFragment.COL_WEATHER_CONDITION_ID);
+        Log.e("chekc", Integer.toString(weatherId) );
         //ImageView ivIcon = (ImageView) view.findViewById(R.id.list_item_icon);
         //ivIcon.setImageResource(R.drawable.ic_placeholder); //not a good idea keep extra icons but whatever for now
-        viewholder.iconView.setImageResource(R.drawable.ic_placeholder);
+        //big icon colout if today and grey icon for other days
+        int viewType = getItemViewType(cursor.getPosition());
+         switch (viewType) {
+            case VIEW_TYPE_TODAY: {
+                // Get weather icon
+                viewHolder.iconView.setImageResource(Utility.getArtResourceForWeatherCondition(
+                                 cursor.getInt(ForecastFragment.COL_WEATHER_CONDITION_ID)));
+                break;
+                 }
+           case VIEW_TYPE_FUTURE_DAY: {
+             // Get weather icon
+             viewHolder.iconView.setImageResource(Utility.getIconResourceForWeatherCondition(
+            cursor.getInt(ForecastFragment.COL_WEATHER_CONDITION_ID)));
+               break;
+         }
+          }
 
         // Read date from cursor
         long dateInMillis = cursor.getLong(ForecastFragment.COL_WEATHER_DATE);
         // Find TextView and set formatted date on it
 //        TextView dateView = (TextView) view.findViewById(R.id.list_item_date_textview);
 //        dateView.setText(Utility.getFriendlyDayString(context, dateInMillis));
-        viewholder.dateView.setText(Utility.getFriendlyDayString(context, dateInMillis));
+        viewHolder.dateView.setText(Utility.getFriendlyDayString(context, dateInMillis));
 
         //read forecast from cursor
         String description = cursor.getString(ForecastFragment.COL_WEATHER_DESC);
 //        TextView DescriptionView= (TextView) view.findViewById(R.id.list_item_forecast_textview);
 //        DescriptionView.setText(description);
-        viewholder.descriptionView.setText(description);
+        viewHolder.descriptionView.setText(description);
 
         //read metric preference
         boolean isMetric = Utility.isMetric(context);
@@ -143,13 +160,13 @@ public class ForecastAdapter extends CursorAdapter {
         double high = cursor.getDouble(ForecastFragment.COL_WEATHER_MAX_TEMP);
 //        TextView highView = (TextView) view.findViewById(R.id.list_item_high_textview);
 //        highView.setText(Utility.formatTemperature(high, isMetric));
-        viewholder.highTempView.setText(Utility.formatTemperature(context, high, isMetric));
+        viewHolder.highTempView.setText(Utility.formatTemperature(context, high, isMetric));
 
         // Read low temperature from cursor
         double low = cursor.getDouble(ForecastFragment.COL_WEATHER_MIN_TEMP);
 //        TextView lowView = (TextView) view.findViewById(R.id.list_item_low_textview);
 //        lowView.setText(Utility.formatTemperature(low, isMetric));
-        viewholder.lowTempView.setText(Utility.formatTemperature(context, low, isMetric));
+        viewHolder.lowTempView.setText(Utility.formatTemperature(context, low, isMetric));
 
 
 
