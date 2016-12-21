@@ -37,10 +37,12 @@ public class DetailActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
 
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        //add a new DetailFragment when the DetailActivity starts. This is soley for the one pane case,
+        // since in the two pane case, you won’t have a DetailActivity, just a MainActivity with a DetailFragment inside of it.
 
         if(savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.container, new DetailFragment())
+                    .add(R.id.weather_detail_container, new DetailFragment())
                     .commit();
         }
 

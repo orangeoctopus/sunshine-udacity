@@ -9,9 +9,7 @@ import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v4.view.MenuItemCompat;
-import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.ShareActionProvider;
-import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -67,7 +65,7 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
         public static final int COL_WEATHER_DEGREES = 8;
         public static final int COL_WEATHER_CONDITION_ID = 9;
 
-        //declare all the items from fragment_detail.xml
+        //declare all the items from content_detailxml
         private ImageView mIconView;
         private TextView mFriendlyDateView;
         private TextView mDateView;
@@ -94,7 +92,7 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
-        View rootView = inflater.inflate(R.layout.fragment_detail, container, false);
+        View rootView = inflater.inflate(R.layout.content_detail, container, false);
         mIconView = (ImageView) rootView.findViewById(R.id.detail_icon);
         mDateView = (TextView) rootView.findViewById(R.id.detail_date_textview);
         mFriendlyDateView = (TextView) rootView.findViewById(R.id.detail_day_textview);
@@ -104,15 +102,16 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
         mHumidityView = (TextView) rootView.findViewById(R.id.detail_humidity_textview);
         mWindView = (TextView) rootView.findViewById(R.id.detail_wind_textview);
          mPressureView = (TextView) rootView.findViewById(R.id.detail_pressure_textview);
+
         return rootView;
 
         //reference the views we need later on so no need to traverese the whole view hierarchy again everytime loader loads
 
 
-//        Intent intent = getActivity().getIntent();
-//        View rootview = inflater.inflate(R.layout.fragment_detail, container, false);
+//       Intent intent = getActivity().getIntent();
+//        View rootview = inflater.inflate(R.layout.content_detail, container, false);
 //        if (intent != null) {
-//            mForecastStr = intent.getDataString();
+//           mForecastStr = intent.getDataString();
 //        }
 //        if (null != mForecastStr) {
 //            ((TextView) rootview.findViewById(R.id.detail_text))
@@ -139,7 +138,8 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
                 //read day and date from cursor
                 long dateInMillis = data.getLong(COL_WEATHER_DATE);
                 mFriendlyDateView.setText(Utility.getDayName(getActivity(), dateInMillis));
-                mDateView.setText(Utility.getformattedDate(dateInMillis, "MMM d"));
+                String formatteddate = Utility.getformattedDate(dateInMillis, "MMM d");
+                mDateView.setText(formatteddate);
 
                 //get metric from pref
                 boolean isMetric = Utility.isMetric(getActivity());
@@ -164,6 +164,9 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
                 // read pressure from cursor
                 double pressure = data.getDouble(COL_WEATHER_PRESSURE);
                 mPressureView.setText(getActivity().getString(R.string.format_pressure, pressure));
+
+                //string for share provider
+                mForecastStr = "On " + formatteddate + " it will be " + description + " with high " + high + " and low " + low;
 
 
 
@@ -202,7 +205,7 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
         public Loader<Cursor> onCreateLoader(int id, Bundle args) {
             Log.v(LOG_TAG, "In onCreateLoader");
             Intent intent = getActivity().getIntent();
-             if (intent == null) {
+             if (intent == null | intent.getData() ==null) {   //If DetailFragment is created without a uri (as in intent.data() == null), it should not try to create a loader
                       return null;
                       }
 

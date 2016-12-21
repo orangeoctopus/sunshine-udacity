@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.annotation.BoolRes;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
@@ -16,21 +17,26 @@ import android.view.MenuItem;
 public class MainActivity extends AppCompatActivity {
 
     String mLocation;
-    private static final String FORECASTFRAGMENT_TAG = "FFTAG";
+    //private static final String FORECASTFRAGMENT_TAG = "FFTAG";
+    //We no longer need the FORCASTFRAGMENT tag since we’re no longer explicitly creating the ForcastFragment.
+    private static final String DETAILFRAGMENT_TAG = "DFTAG";
+    private boolean mTwoPane;
 
     @Override
-    protected void onPostResume() {
-        super.onPostResume();
+    protected void onResume() {
+        super.onResume();
         String location = Utility.getPreferredLocation( this );
-              // update the location in our second pane using the fragment manager
-                if (location != null && !location.equals(mLocation)) {
-                     ForecastFragment ff = (ForecastFragment)getSupportFragmentManager().findFragmentByTag(FORECASTFRAGMENT_TAG);
-                  if ( null != ff ) {
-                         ff.onLocationChanged();
-                       }
-                mLocation = location;
-                }
+        // update the location in our second pane using the fragment manager
+        if (location != null && !location.equals(mLocation)) {
+            ForecastFragment ff = (ForecastFragment)getSupportFragmentManager().findFragmentById(R.id.fragment_forecast);
+            if ( null != ff ) {
+                ff.onLocationChanged();
+            }
+            mLocation = location;
+        }
     }
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,11 +56,37 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        if (savedInstanceState == null) {
-            getSupportFragmentManager().beginTransaction()
-                    .add(R.id.fragment, new ForecastFragment(), FORECASTFRAGMENT_TAG)
-                    .commit();
+//        if (savedInstanceState == null) {
+//            getSupportFragmentManager().beginTransaction()
+//                    .add(R.id.fragment, new ForecastFragment(), FORECASTFRAGMENT_TAG)
+//                    .commit();
+//        }
+
+        //To know what case it is, have your MainActivity check whether or not the layout contains a
+        // view with the id weather_detail_container. If it does,
+        // it’s a two pane layout so set mTwoPane to true, otherwise you can set it to false. Also, if it’s a two pane layout,
+        // you’ll need to add a new DetailFragment
+
+        if (findViewById(R.id.weather_detail_container) != null) {
+            // The detail container view will be present only in the large-screen layouts
+            // (res/layout-sw600dp). If this view is present, then the activity should be
+            // in two-pane mode.
+            mTwoPane = true;
+            // In two-pane mode, show the detail view in this activity by
+            // adding or replacing the detail fragment using a
+            // fragment transaction.
+            if (savedInstanceState == null) {
+                //Why check savedInstanceState to equal null? Well if we rotate the phone, the system saves the fragment state
+                // in the saved state bundle and is smart enough to restore this state.
+                //Therefore, if the saved state bundle is not null, the system already has the fragment it needs and you shouldn’t go adding another one.
+                getSupportFragmentManager().beginTransaction()
+                        .replace(R.id.weather_detail_container, new DetailFragment(), DETAILFRAGMENT_TAG)
+                        .commit();
+            }
+        } else {
+            mTwoPane = false;
         }
+
     }
 
     @Override

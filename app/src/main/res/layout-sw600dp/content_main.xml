@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:baselineAligned="false"
+    android:divider="?android:attr/dividerHorizontal"
+    android:orientation="horizontal"
+    tools:context="com.example.pogee.sunshine.app.MainActivity">
+
+    <!--
+    This layout is a two-pane layout for the Items master/detail flow.
+    -->
+
+    <!--
+    This the static forecast fragment component
+    -->
+    <fragment
+        android:id="@+id/fragment_forecast"
+        android:name="com.example.pogee.sunshine.app.ForecastFragment"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="2"
+        tools:layout="@android:layout/list_content" />
+
+    <!--
+    This the dynamic detail fragment - so its a frame layout (no framgent statically declared
+    -->
+    <FrameLayout
+        android:id="@+id/weather_detail_container"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="4" />
+
+</LinearLayout>

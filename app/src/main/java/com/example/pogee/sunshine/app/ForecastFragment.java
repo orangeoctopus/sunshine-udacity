@@ -3,22 +3,14 @@ package com.example.pogee.sunshine.app;
 
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.database.Cursor;
-import android.net.ConnectivityManager;
 import android.net.Uri;
-import android.os.AsyncTask;
-import android.preference.Preference;
-import android.preference.PreferenceManager;
-import android.support.annotation.InterpolatorRes;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
-import android.support.v4.content.SharedPreferencesCompat;
 import android.support.v4.app.LoaderManager;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -26,10 +18,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.ListView;
-import android.widget.TextView;
-import android.widget.Toast;
 
 import com.example.pogee.sunshine.app.data.WeatherContract;
 
@@ -89,7 +78,7 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
                 getActivity(),
                 null ,0);
 
-        View rootView = inflater.inflate(R.layout.fragment_main, container, false);
+        View rootView = inflater.inflate(R.layout.content_main, container, false);
 
         //get reference to list view and atache adapter to it
         final ListView mForecastListview = (ListView) rootView.findViewById(R.id.listview_forecast);
@@ -211,10 +200,10 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
         weatherTask.execute(locationpref);
     }
 
-//    @Override
-//    public void onStart() {
-//        super.onStart();
-//        updateWeather();
-//    }
+    @Override
+    public void onStart() {
+        super.onStart();
+        updateWeather();
+    }
 
 }
