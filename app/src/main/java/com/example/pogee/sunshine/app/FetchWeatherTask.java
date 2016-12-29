@@ -310,8 +310,8 @@ public class FetchWeatherTask extends AsyncTask<String, Void, Void> {
                     temperatureObject = weatherArray.getJSONObject(i+j).getJSONObject(OWM_MAIN);
                     tempList.add(temperatureObject.getDouble(OWM_TEMPERATURE)) ;
                     Log.e("testata", "Day: " +DateFormat.getDateInstance(DateFormat.SHORT).format(gc.getTime()));
-                    Log.e("testata", "Temp: " +Double.toHexString(temperatureObject.getDouble(OWM_TEMPERATURE)));
-                    Log.e("testata", "i is: "+ i + "j is" + j);
+                    //Log.e("testata", "Temp: " +Double.toHexString(temperatureObject.getDouble(OWM_TEMPERATURE)));
+                    Log.e("testata", "i is: "+ i + " j is" + j);
                     pressureSum += temperatureObject.getDouble(OWM_PRESSURE);
                     humiditySum += temperatureObject.getInt(OWM_HUMIDITY);
                     windObject = weatherArray.getJSONObject(i+j).getJSONObject(OWM_WIND);
@@ -320,7 +320,7 @@ public class FetchWeatherTask extends AsyncTask<String, Void, Void> {
                 }
                 if(i==0){
                     i = i- (40-cnt);
-                    if(i<0) {
+                    if(i<-8) {
                         //becuse for some reason theres only like 27 entries in api call
                         i +=8;
                     }

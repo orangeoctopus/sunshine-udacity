@@ -14,7 +14,7 @@ import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements ForecastFragment.Callback{
 
     String mLocation;
     //private static final String FORECASTFRAGMENT_TAG = "FFTAG";
@@ -31,6 +31,10 @@ public class MainActivity extends AppCompatActivity {
             ForecastFragment ff = (ForecastFragment)getSupportFragmentManager().findFragmentById(R.id.fragment_forecast);
             if ( null != ff ) {
                 ff.onLocationChanged();
+            }
+            DetailFragment df = (DetailFragment)getSupportFragmentManager().findFragmentByTag(DETAILFRAGMENT_TAG);
+            if ( null != df ) {
+                df.onLocationChanged(location);
             }
             mLocation = location;
         }
@@ -61,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
 //                    .add(R.id.fragment, new ForecastFragment(), FORECASTFRAGMENT_TAG)
 //                    .commit();
 //        }
+        //now the forcast fragment is statically added - only detail fragment dynamically added
 
         //To know what case it is, have your MainActivity check whether or not the layout contains a
         // view with the id weather_detail_container. If it does,
@@ -112,6 +117,28 @@ public class MainActivity extends AppCompatActivity {
                 return super.onOptionsItemSelected(item);
         }
 
+    }
+
+    @Override
+    public void onItemSelected(Uri contentUri) {
+        if (mTwoPane) {
+            // In two-pane mode, show the detail view in this activity by
+             // adding or replacing the detail fragment using a
+            // fragment transaction.
+            Bundle args = new Bundle();
+            args.putParcelable(DetailFragment.DETAIL_URI, contentUri);
+
+             DetailFragment fragment = new DetailFragment();
+            fragment.setArguments(args);
+
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.weather_detail_container, fragment, DETAILFRAGMENT_TAG)
+                    .commit();
+            } else {
+            Intent intent = new Intent(this, DetailActivity.class)
+                                     .setData(contentUri);
+            startActivity(intent);
+        }
     }
 
     private void openPreferredLocationOnMap() {

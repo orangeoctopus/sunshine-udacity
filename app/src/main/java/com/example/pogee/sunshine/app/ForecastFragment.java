@@ -64,12 +64,19 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
     private ForecastAdapter mForecastAdapter;
     private Context mContext = this.getContext();
 
+    private ListView mListView;
+    private int mPosition = ListView.INVALID_POSITION; //glbal vairable because the list view may not be populated yet
+
+    private static final String SELECTED_KEY = "selected_position";
+
+
+
     public ForecastFragment() {
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+                             final Bundle savedInstanceState) {
 
 
 
@@ -101,23 +108,57 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
 
             @Override
             public void onItemClick(AdapterView adapterView, View view, int position, long l) {
+
                 // CursorAdapter returns a cursor at the correct position for getItem(), or null
                 // if it cannot seek to that position.
                 Cursor cursor = (Cursor) adapterView.getItemAtPosition(position);
                 if (cursor != null) {
                     String locationSetting = Utility.getPreferredLocation(getActivity());
-                    Intent intent = new Intent(getActivity(), DetailActivity.class)
-                            .setData(WeatherContract.WeatherEntry.buildWeatherLocationWithDate(
-                                    locationSetting, cursor.getLong(COL_WEATHER_DATE)
-                            ));
-                    startActivity(intent);
+//                    Intent intent = new Intent(getActivity(), DetailActivity.class)
+//                            .setData(WeatherContract.WeatherEntry.buildWeatherLocationWithDate(
+//                                    locationSetting, cursor.getLong(COL_WEATHER_DATE)
+//                            ));
+//                    startActivity(intent);   <- now main actvity does this when in one pane mode
+
+                    ((Callback) getActivity())  //cast getactivity to a callback
+                     .onItemSelected(WeatherContract.WeatherEntry.buildWeatherLocationWithDate(locationSetting, cursor.getLong(COL_WEATHER_DATE)
+                    //gets date from info from item deslected by gettign cursor - date used with location to get uri to past to mainactivity
+                             // so main activity can use uri to get the information to bundle args to send to details fragment
+                     ));
                 }
+                mPosition = position;
             }
         });
+
+        // If there's instance state, mine it for useful information.
+        // The end-goal here is that the user never knows that turning their device sideways
+        // does crazy lifecycle related things.  It should feel like some stuff stretched out,
+        // or magically appeared to take advantage of room, but data or place in the app was never
+        // actually *lost*.
+        if (savedInstanceState != null && savedInstanceState.containsKey(SELECTED_KEY)) {
+            // The listview probably hasn't even been populated yet.  Actually perform the
+         // swapout in onLoadFinished.
+          mPosition = savedInstanceState.getInt(SELECTED_KEY);
+        }
 
 
 
         return rootView;
+    }
+
+    /**
+     * A callback interface that all activities containing this fragment must
+     * implement. This mechanism allows activities to be notified of item
+     * selections.
+     */
+    public interface Callback {
+        /**
+         * DetailFragmentCallback for when an item has been selected.
+         * better to say that the fragment will always be within the activity that implements this call back
+         * create callback interface forcast fragment to talk to main activiy
+         * detail fragment is used in main and detail activity
+         */
+        public void onItemSelected(Uri dateUri);
     }
 
     @Override
@@ -138,6 +179,12 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
 
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+
+        // This is called when a new Loader needs to be created.  This
+        // fragment only uses one loader, so we don't care about checking the id.
+        // To only show current and future dates, filter the query to return weather only for
+        // dates after or including today.
+
         //where we create and return a cursor loader
         String locationSetting = Utility.getPreferredLocation(getActivity());
 
@@ -154,6 +201,11 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
         // Swap the new cursor in.  (The framework will take care of closing the
         // old cursor once we return.)
         mForecastAdapter.swapCursor(data);
+         if (mPosition != ListView.INVALID_POSITION) {
+             // If we don't need to restart the loader, and there's a desired position to restore
+              // to, do so now.
+               mListView.smoothScrollToPosition(mPosition); //set the selection to scroll to position after cursor has been swapped
+            }
 
     }
 
@@ -198,6 +250,18 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
         FetchWeatherTask weatherTask = new FetchWeatherTask(getActivity());
         String locationpref = Utility.getPreferredLocation(getActivity());
         weatherTask.execute(locationpref);
+    }
+
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        // When tablets rotate, the currently selected list item needs to be saved.
+        // When no item is selected, mPosition will be set to Listview.INVALID_POSITION,
+        // so check for that before storing.
+        if (mPosition != ListView.INVALID_POSITION) {
+            outState.putInt(SELECTED_KEY, mPosition);
+            }
+        super.onSaveInstanceState(outState);
     }
 
     @Override
