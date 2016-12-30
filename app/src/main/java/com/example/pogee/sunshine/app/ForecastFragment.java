@@ -66,6 +66,7 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
 
     private ListView mListView;
     private int mPosition = ListView.INVALID_POSITION; //glbal vairable because the list view may not be populated yet
+    private boolean mUseTodayLayout;
 
     private static final String SELECTED_KEY = "selected_position";
 
@@ -84,6 +85,8 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
                 //context
                 getActivity(),
                 null ,0);
+
+        mForecastAdapter.setUseTodayLayout(mUseTodayLayout);
 
         View rootView = inflater.inflate(R.layout.content_main, container, false);
 
@@ -141,9 +144,19 @@ public class ForecastFragment extends Fragment implements LoaderManager.LoaderCa
           mPosition = savedInstanceState.getInt(SELECTED_KEY);
         }
 
+        mForecastAdapter.setUseTodayLayout(mUseTodayLayout);
 
 
         return rootView;
+    }
+
+    public void setUseTodayLayout(boolean useTodayLayout) {   //for main activity to set
+        mUseTodayLayout = useTodayLayout;
+        //mforecastadapter might be null because main activity may be called before
+        // forecastfragment oncreateview method (which is where adapter is set - so seUsetoday aslo called in oncreateview
+        if (mForecastAdapter != null) {
+            mForecastAdapter.setUseTodayLayout(mUseTodayLayout);
+        }
     }
 
     /**

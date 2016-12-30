@@ -26,6 +26,9 @@ public class ForecastAdapter extends CursorAdapter {
     private static final int VIEW_TYPE_TODAY = 0;
     private static final int VIEW_TYPE_FUTURE_DAY = 1;
 
+    // Flag to determine if we want to use a separate view for "today".
+    private boolean mUseTodayLayout = true;
+
     public ForecastAdapter(Context context, Cursor c, int flags) {
         super(context, c, flags);
     }
@@ -96,9 +99,14 @@ public class ForecastAdapter extends CursorAdapter {
         return view;
     }
 
+    public void setUseTodayLayout(boolean useTodayLayout) {
+      mUseTodayLayout = useTodayLayout; //who knows? main activity would know wherther we want two pane or one pane mode
+        //main activity tells forecast fragment which would control this adapter
+     }
+
     @Override
    public int getItemViewType(int position) {
-    return position == 0 ? VIEW_TYPE_TODAY : VIEW_TYPE_FUTURE_DAY;
+    return (position == 0 && mUseTodayLayout )? VIEW_TYPE_TODAY : VIEW_TYPE_FUTURE_DAY;
    }
 
     @Override
@@ -120,7 +128,7 @@ public class ForecastAdapter extends CursorAdapter {
 
         // Read weather icon ID from cursor
         int weatherId = cursor.getInt(ForecastFragment.COL_WEATHER_CONDITION_ID);
-        Log.e("chekc", Integer.toString(weatherId) );
+        //Log.e("chekc", Integer.toString(weatherId) );
         //ImageView ivIcon = (ImageView) view.findViewById(R.id.list_item_icon);
         //ivIcon.setImageResource(R.drawable.ic_placeholder); //not a good idea keep extra icons but whatever for now
         //big icon colout if today and grey icon for other days
